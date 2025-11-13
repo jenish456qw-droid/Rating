@@ -652,8 +652,6 @@
         <div id="completionScreen" class="screen completion-screen">
             <div class="completion-icon">✅</div>
             <h2>Thank You!</h2>
-            <p>Your ratings have been submitted successfully.</p>
-            <p style="font-size: 0.9rem; margin-top: 10px;">Data saved to Google Drive & Excel file downloaded.</p>
             <button class="btn btn-primary" onclick="resetApp()" style="margin-top: 20px;">Rate Again</button>
         </div>
     </div>
@@ -832,12 +830,9 @@
 
         function submitRatings() {
             const submitText = document.getElementById('submitText');
-            submitText.innerHTML = 'Submitting to Drive... <span class="loading"></span>';
+            submitText.innerHTML = 'Thank You Naughty Boy ... <span class="loading"></span>';
 
-            // Generate and download Excel file first
-            generateExcelFile();
-
-            // Then upload to Google Drive
+            // Upload to Google Drive (central storage)
             uploadToGoogleDrive();
         }
 
@@ -900,51 +895,6 @@
             }
         }
 
-        function generateExcelFile() {
-            try {
-                const excelData = [];
-                const headers = ['Rater Name', 'Celebrity Name', ...ratingCategories];
-                excelData.push(headers);
-
-                appState.ratings.forEach((ratingEntry) => {
-                    const row = [
-                        appState.raterName,
-                        ratingEntry.name,
-                        ratingEntry.ratings['Ass'] || 0,
-                        ratingEntry.ratings['Boobs'] || 0,
-                        ratingEntry.ratings['Arm Pits'] || 0,
-                        ratingEntry.ratings['Face'] || 0,
-                        ratingEntry.ratings['Overall'] || 0
-                    ];
-                    excelData.push(row);
-                });
-
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.aoa_to_sheet(excelData);
-
-                ws['!cols'] = [
-                    { wch: 20 },
-                    { wch: 28 },
-                    { wch: 12 },
-                    { wch: 18 },
-                    { wch: 12 },
-                    { wch: 12 },
-                    { wch: 12 }
-                ];
-
-                XLSX.utils.book_append_sheet(wb, ws, 'Celebrity Ratings');
-
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-                const filename = `Celebrity_Ratings_${timestamp}.xlsx`;
-
-                XLSX.writeFile(wb, filename);
-            } catch (error) {
-                console.error('Error generating Excel file:', error);
-                alert('Error generating Excel file. Please try again.');
-                const submitText = document.getElementById('submitText');
-                submitText.textContent = 'Submit Ratings';
-            }
-        }
 
         function resetApp() {
             appState.raterName = '';
@@ -975,4 +925,3 @@
     </script>
 </body>
 </html>
-
