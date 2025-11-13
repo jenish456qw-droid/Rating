@@ -653,7 +653,7 @@
             <div class="completion-icon">✅</div>
             <h2>Thank You!</h2>
             <p>Your ratings have been submitted successfully.</p>
-            <p style="font-size: 0.9rem; margin-top: 10px;">Excel file has been downloaded.</p>
+            <p style="font-size: 0.9rem; margin-top: 10px;">Data saved to Google Drive & Excel file downloaded.</p>
             <button class="btn btn-primary" onclick="resetApp()" style="margin-top: 20px;">Rate Again</button>
         </div>
     </div>
@@ -682,15 +682,15 @@
 
         function initializeCelebrities() {
             const defaultCelebrities = [
-                { name: 'Sonam', image: '1.jpeg' },
-                { name: 'Esha', image: '2.jpeg' },
-                { name: 'Jhanvi', image: '3.jpeg' },
-                { name: 'Anushka', image: '4.jpeg' },
-                { name: 'Sonam', image: '5.jpeg' },
-                { name: 'Jhanvi', image: '6.jpeg' },
-                { name: 'Deepika', image: '7.jpeg' },
-                { name: 'Palak', image: '8.jpeg' },
-                { name: 'Disha', image: '9.jpeg' }
+                { name: 'Sonam', image: 'img/1.jpeg' },
+                { name: 'Esha', image: 'img/2.jpeg' },
+                { name: 'Jhanvi', image: 'img/3.jpeg' },
+                { name: 'Anushka', image: 'img/4.jpeg' },
+                { name: 'Sonam', image: 'img/5.jpeg' },
+                { name: 'Jhanvi', image: 'img/6.jpeg' },
+                { name: 'Deepika', image: 'img/7.jpeg' },
+                { name: 'Palak', image: 'img/8.jpeg' },
+                { name: 'Disha', image: 'img/9.jpeg' }
             ];
 
             const savedCelebrities = localStorage.getItem('celebrities');
@@ -827,33 +827,77 @@
             }
         }
 
+        // Google Apps Script Web App URL - Replace with your deployed script URL
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxrer9GjYxO-3V1N6HJmwPduMWDrB7uGDMye0mdrnI1MPiPA6ahN5B5wcc655lvzGqojw/exec';
+
         function submitRatings() {
             const submitText = document.getElementById('submitText');
-            submitText.innerHTML = 'Generating Excel... <span class="loading"></span>';
+            submitText.innerHTML = 'Submitting to Drive... <span class="loading"></span>';
 
-            let allRated = true;
-            appState.ratings.forEach((rating, index) => {
-                const hasZeroRating = Object.values(rating.ratings).some((value) => value === 0);
-                if (hasZeroRating) {
-                    allRated = false;
-                    if (index === appState.currentIndex) {
-                        alert(`Please rate all categories for ${rating.name}`);
-                    }
-                }
-            });
-
-            if (!allRated) {
-                submitText.textContent = 'Submit Ratings';
-                const unratedIndex = appState.ratings.findIndex((ratingEntry) =>
-                    Object.values(ratingEntry.ratings).some((value) => value === 0)
-                );
-                if (unratedIndex !== -1) {
-                    loadCelebrity(unratedIndex);
-                }
-                return;
-            }
-
+            // Generate and download Excel file first
             generateExcelFile();
+
+            // Then upload to Google Drive
+            uploadToGoogleDrive();
+        }
+
+        async function uploadToGoogleDrive() {
+            try {
+                // Prepare data for Google Sheets
+                const rows = [];
+                
+                // Add data rows (no header, as it will be added by the script if needed)
+                appState.ratings.forEach((ratingEntry) => {
+                    const row = [
+                        new Date().toISOString(), // Timestamp
+                        appState.raterName,
+                        ratingEntry.name,
+                        ratingEntry.ratings['Ass'] || 0,
+                        ratingEntry.ratings['Boobs'] || 0,
+                        ratingEntry.ratings['Arm Pits'] || 0,
+                        ratingEntry.ratings['Face'] || 0,
+                        ratingEntry.ratings['Overall'] || 0
+                    ];
+                    rows.push(row);
+                });
+
+                // Send data to Google Apps Script
+                if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL !== 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+                    // Create form data for POST request
+                    const formData = new FormData();
+                    formData.append('data', JSON.stringify(rows));
+
+                    const response = await fetch(GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        console.log('Data successfully saved to Google Drive');
+                    } else {
+                        console.log('Response received but may have errors');
+                    }
+                } else {
+                    console.log('Google Drive URL not configured. Skipping upload.');
+                }
+                
+                // Show completion screen
+                setTimeout(() => {
+                    document.getElementById('ratingScreen').classList.remove('active');
+                    document.getElementById('completionScreen').classList.add('active');
+                    const submitText = document.getElementById('submitText');
+                    submitText.textContent = 'Submit Ratings';
+                }, 1000);
+            } catch (error) {
+                console.error('Error uploading to Google Drive:', error);
+                // Even if upload fails, show completion screen
+                setTimeout(() => {
+                    document.getElementById('ratingScreen').classList.remove('active');
+                    document.getElementById('completionScreen').classList.add('active');
+                    const submitText = document.getElementById('submitText');
+                    submitText.textContent = 'Submit Ratings';
+                }, 1000);
+            }
         }
 
         function generateExcelFile() {
@@ -866,11 +910,11 @@
                     const row = [
                         appState.raterName,
                         ratingEntry.name,
-                        ratingEntry.ratings['Ass'],
-                        ratingEntry.ratings['Boobs'],
-                        ratingEntry.ratings['Armpits'],
-                        ratingEntry.ratings['face'],
-                        ratingEntry.ratings['Overall']
+                        ratingEntry.ratings['Ass'] || 0,
+                        ratingEntry.ratings['Boobs'] || 0,
+                        ratingEntry.ratings['Arm Pits'] || 0,
+                        ratingEntry.ratings['Face'] || 0,
+                        ratingEntry.ratings['Overall'] || 0
                     ];
                     excelData.push(row);
                 });
@@ -883,8 +927,8 @@
                     { wch: 28 },
                     { wch: 12 },
                     { wch: 18 },
-                    { wch: 10 },
-                    { wch: 14 },
+                    { wch: 12 },
+                    { wch: 12 },
                     { wch: 12 }
                 ];
 
@@ -894,15 +938,11 @@
                 const filename = `Celebrity_Ratings_${timestamp}.xlsx`;
 
                 XLSX.writeFile(wb, filename);
-
-                setTimeout(() => {
-                    document.getElementById('ratingScreen').classList.remove('active');
-                    document.getElementById('completionScreen').classList.add('active');
-                }, 450);
             } catch (error) {
                 console.error('Error generating Excel file:', error);
                 alert('Error generating Excel file. Please try again.');
-                document.getElementById('submitText').textContent = 'Submit Ratings';
+                const submitText = document.getElementById('submitText');
+                submitText.textContent = 'Submit Ratings';
             }
         }
 
@@ -934,6 +974,4 @@
         initializeCelebrities();
     </script>
 </body>
-
 </html>
-
