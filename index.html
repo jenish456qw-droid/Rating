@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Celebrity Rating System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary-color: #f59e0b;
+            --bg-color: #0b1120;
+            --card-bg: rgba(15, 23, 42, 0.75);
+            --panel-bg: rgba(15, 23, 42, 0.6);
+            --glass-stroke: rgba(148, 163, 184, 0.25);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-color: rgba(148, 163, 184, 0.2);
+            --star-filled: #fbbf24;
+            --star-empty: rgba(148, 163, 184, 0.4);
+            --success-color: #22c55e;
+            --shadow: 0 18px 40px -25px rgba(15, 23, 42, 0.9);
+            --shadow-soft: 0 10px 30px -20px rgba(148, 163, 184, 0.5);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: radial-gradient(120% 140% at 10% 20%, rgba(99, 102, 241, 0.25) 0%, transparent 55%),
+                        radial-gradient(140% 160% at 90% 20%, rgba(236, 72, 153, 0.2) 0%, transparent 60%),
+                        var(--bg-color);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            color: var(--text-primary);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1280px;
+            height: min(92vh, 920px);
+            background: rgba(15, 23, 42, 0.65);
+            border-radius: 28px;
+            backdrop-filter: blur(22px);
+            border: 1px solid var(--glass-stroke);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            animation: fadeIn 0.5s ease-in;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .screen {
+            display: none;
+            padding: 36px 44px;
+            height: 100%;
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            animation: slideIn 0.45s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .welcome-title {
+            font-size: clamp(2.4rem, 3vw, 3rem);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+            background: linear-gradient(120deg, #c084fc 0%, #818cf8 40%, #38bdf8 90%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .welcome-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 36px;
+        }
+
+        .input-group {
+            margin: 0 auto 32px;
+            max-width: 420px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 0.02em;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 1px solid transparent;
+            border-radius: 14px;
+            font-size: 1.05rem;
+            transition: all 0.3s ease;
+            background: rgba(148, 163, 184, 0.12);
+            color: var(--text-primary);
+            backdrop-filter: blur(12px);
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: rgba(99, 102, 241, 0.6);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.25);
+            background: rgba(99, 102, 241, 0.12);
+        }
+
+        .error-message {
+            color: #f87171;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        /* Rating Layout */
+        .rating-layout {
+            display: flex;
+            align-items: stretch;
+            gap: 40px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .celebrity-panel {
+            max-width: 350px;
+            flex: 0 0 52%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-height: 0;
+        }
+
+        .celebrity-frame {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            height: 100%;
+            border-radius: 24px;
+            overflow: hidden;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(14, 116, 144, 0.35));
+            box-shadow: var(--shadow-soft);
+        }
+
+        .celebrity-frame::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(200deg, rgba(15, 23, 42, 0) 45%, rgba(15, 23, 42, 0.55) 100%);
+            pointer-events: none;
+        }
+
+        .celebrity-image {
+            height: 100%;
+            object-fit: cover;
+            object-position: center top;
+            display: block;
+            transition: transform 0.8s ease;
+        }
+
+        .celebrity-frame:hover .celebrity-image {
+            transform: scale(1.04);
+        }
+
+        .celebrity-overlay {
+            position: absolute;
+            inset: 0;
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            z-index: 2;
+        }
+
+        .celebrity-chip {
+            align-self: flex-start;
+            font-weight: 700;
+            padding: 8px 16px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.65);
+            color: var(--text-secondary);
+            font-size: 2rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            backdrop-filter: blur(12px);
+        }
+
+        .celebrity-name {
+            font-size: clamp(1.9rem, 2.3vw, 2.6rem);
+            font-weight: 700;
+            letter-spacing: -0.015em;
+            color: #f8fafc;
+            text-shadow: 0 10px 30px rgba(15, 23, 42, 0.65);
+        }
+
+        /* Rating Panel */
+        .rating-panel {
+            flex: 1;
+            background: var(--panel-bg);
+            border-radius: 28px;
+            border: 1px solid var(--glass-stroke);
+            padding: 32px 34px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+            min-height: 0;
+        }
+
+        .panel-header {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel-topline {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .panel-title {
+            font-size: 1.9rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .rater-name {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-top: 6px;
+            display: inline-block;
+        }
+
+        .progress-group {
+            width: 100%;
+        }
+
+        .progress-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(148, 163, 184, 0.16);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #6366f1 0%, #22d3ee 100%);
+            border-radius: 999px;
+            transition: width 0.4s ease-in-out;
+        }
+
+        .rating-scroll {
+            flex: 1;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .rating-categories {
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+            padding-right: 6px;
+            max-height: 100%;
+            overflow-y: auto;
+        }
+
+        .rating-categories::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .rating-categories::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.45);
+            border-radius: 999px;
+        }
+
+        .rating-item {
+            background: rgba(148, 163, 184, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 20px;
+            padding: 20px 22px;
+            transition: all 0.35s ease;
+        }
+
+        .rating-item:hover {
+            border-color: rgba(99, 102, 241, 0.7);
+            box-shadow: 0 18px 30px -22px rgba(99, 102, 241, 0.8);
+            transform: translateY(-2px);
+        }
+
+        .rating-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 16px;
+            gap: 20px;
+        }
+
+        .rating-label span:first-child {
+            font-weight: 600;
+            font-size: 1.05rem;
+        }
+
+        .rating-value {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: rgba(248, 250, 252, 0.9);
+            background: rgba(99, 102, 241, 0.18);
+            padding: 6px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(99, 102, 241, 0.25);
+        }
+
+        .star-rating {
+            display: flex;
+            gap: 14px;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .star {
+            width: 52px;
+            height: 52px;
+            border-radius: 18px;
+            border: 1px solid transparent;
+            background: rgba(15, 23, 42, 0.55);
+            color: var(--star-empty);
+            font-size: 1.8rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            backdrop-filter: blur(8px);
+        }
+
+        .star:hover,
+        .star:focus-visible {
+            border-color: rgba(148, 163, 184, 0.45);
+            transform: translateY(-3px) scale(1.03);
+            outline: none;
+        }
+
+        .star.filled {
+            color: var(--star-filled);
+            background: rgba(99, 102, 241, 0.2);
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 18px 25px -20px rgba(251, 191, 36, 0.9);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 16px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            margin-top: auto;
+            padding-top: 18px;
+            border-top: 1px solid rgba(148, 163, 184, 0.12);
+        }
+
+        .btn {
+            padding: 15px 32px;
+            border: none;
+            border-radius: 16px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 150px;
+            text-align: center;
+            color: #f8fafc;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .btn:hover::after {
+            opacity: 1;
+        }
+
+        .btn-primary {
+            background: linear-gradient(120deg, #6366f1 0%, #22d3ee 100%);
+            box-shadow: 0 15px 35px -18px rgba(99, 102, 241, 0.9);
+        }
+
+        .btn-secondary {
+            background: rgba(148, 163, 184, 0.22);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+        }
+
+        .btn-success {
+            background: linear-gradient(120deg, #22c55e 0%, #16a34a 100%);
+            box-shadow: 0 15px 35px -18px rgba(34, 197, 94, 0.85);
+        }
+
+        .btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Completion Screen */
+        .completion-screen {
+            text-align: center;
+            padding: 80px 40px;
+            justify-content: center;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .completion-icon {
+            font-size: 5rem;
+            margin-bottom: 24px;
+            animation: bounce 0.6s ease;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-18px); }
+            60% { transform: translateY(-8px); }
+        }
+
+        .completion-screen h2 {
+            font-size: 2.4rem;
+            margin-bottom: 12px;
+            color: var(--success-color);
+        }
+
+        .completion-screen p {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            margin-bottom: 30px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 3px solid rgba(255, 255, 255, 0.28);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.7s linear infinite;
+            margin-left: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1180px) {
+            .screen {
+                padding: 32px;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                height: auto;
+            }
+
+            .rating-layout {
+                flex-direction: column;
+            }
+
+            .celebrity-panel {
+                flex-basis: auto;
+            }
+
+            .celebrity-frame {
+                height: 420px;
+            }
+
+            .rating-panel {
+                padding: 28px;
+            }
+        }
+
+        @media (max-width: 720px) {
+            body {
+                padding: 16px;
+            }
+
+            .container {
+                border-radius: 22px;
+                height: auto;
+            }
+
+            .screen {
+                padding: 24px 18px;
+            }
+
+            .celebrity-frame {
+                height: 360px;
+            }
+
+            .panel-title {
+                font-size: 1.6rem;
+            }
+
+            .button-group {
+                justify-content: stretch;
+            }
+
+            .btn {
+                flex: 1;
+                min-width: unset;
+            }
+
+            .star {
+                width: 46px;
+                height: 46px;
+                font-size: 1.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Welcome Screen -->
+        <div id="welcomeScreen" class="screen active welcome-screen">
+            <h1 class="welcome-title">⭐ Celebrity Rating System</h1>
+            <p class="welcome-subtitle">Share your perspective on top talents across multiple dimensions.</p>
+            <div class="input-group">
+                <label for="raterName">Enter Your Name</label>
+                <input type="text" id="raterName" placeholder="John Doe" autocomplete="name">
+                <div class="error-message" id="nameError">Please enter your name to continue</div>
+            </div>
+            <button class="btn btn-primary" onclick="startRating()">Start Rating</button>
+        </div>
+
+        <!-- Rating Screen -->
+        <div id="ratingScreen" class="screen">
+            <div class="rating-layout">
+                <div class="celebrity-panel">
+                    <div class="celebrity-frame">
+                        <img id="celebrityImage" class="celebrity-image" src="" alt="Celebrity portrait">
+                        <div class="celebrity-overlay">
+                            <span class="celebrity-chip" id="celebrityName"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rating-panel">
+                    <div class="panel-header">
+                        <div class="panel-topline">
+                            <div>
+                                <div class="panel-title">Rate the Celebrity</div>
+                                <span class="rater-name" id="raterNameDisplay"></span>
+                            </div>
+                        </div>
+
+                        <div class="progress-group">
+                            <div class="progress-meta">
+                                <span id="progressText">1 of 1</span>
+                                <span>Complete all categories</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rating-scroll">
+                        <div class="rating-categories" id="ratingCategories"></div>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-secondary" id="prevBtn" onclick="previousCelebrity()" style="display: none;">Previous</button>
+                        <button class="btn btn-primary" id="nextBtn" onclick="nextCelebrity()">Next</button>
+                        <button class="btn btn-success" id="submitBtn" onclick="submitRatings()" style="display: none;">
+                            <span id="submitText">Submit Ratings</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Completion Screen -->
+        <div id="completionScreen" class="screen completion-screen">
+            <div class="completion-icon">✅</div>
+            <h2>Thank You!</h2>
+            <p>Your ratings have been submitted successfully.</p>
+            <p style="font-size: 0.9rem; margin-top: 10px;">Excel file has been downloaded.</p>
+            <button class="btn btn-primary" onclick="resetApp()" style="margin-top: 20px;">Rate Again</button>
+        </div>
+    </div>
+
+    <!-- SheetJS Library for Excel Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+    <script>
+        const ratingCategories = [
+            'Ass',
+            'Boobs',
+            'Arm Pits',
+            'Face',
+            'Overall'
+        ];
+
+        const slugifyCategory = (name) =>
+            name.toLowerCase().replace(/\s+/g, '-');
+
+        const appState = {
+            raterName: '',
+            currentIndex: 0,
+            ratings: [],
+            celebrities: []
+        };
+
+        function initializeCelebrities() {
+            const defaultCelebrities = [
+                { name: 'Sonam', image: 'img/1.jpeg' },
+                { name: 'Esha', image: 'img/2.jpeg' },
+                { name: 'Jhanvi', image: 'img/3.jpeg' },
+                { name: 'Anushka', image: 'img/4.jpeg' },
+                { name: 'Sonam', image: 'img/5.jpeg' },
+                { name: 'Jhanvi', image: 'img/6.jpeg' },
+                { name: 'Deepika', image: 'img/7.jpeg' },
+                { name: 'Palak', image: 'img/8.jpeg' },
+                { name: 'Disha', image: 'img/9.jpeg' }
+            ];
+
+            const savedCelebrities = localStorage.getItem('celebrities');
+            appState.celebrities = savedCelebrities
+                ? JSON.parse(savedCelebrities)
+                : defaultCelebrities;
+
+            appState.ratings = appState.celebrities.map(() => ({
+                name: '',
+                ratings: Object.fromEntries(
+                    ratingCategories.map((category) => [category, 0])
+                )
+            }));
+        }
+
+        function startRating() {
+            const nameInput = document.getElementById('raterName');
+            const nameError = document.getElementById('nameError');
+            const name = nameInput.value.trim();
+
+            if (!name) {
+                nameError.classList.add('show');
+                nameInput.focus();
+                return;
+            }
+
+            nameError.classList.remove('show');
+            appState.raterName = name;
+            document.getElementById('raterNameDisplay').textContent = `Rater: ${name}`;
+
+            document.getElementById('welcomeScreen').classList.remove('active');
+            document.getElementById('ratingScreen').classList.add('active');
+
+            loadCelebrity(0);
+        }
+
+        function loadCelebrity(index) {
+            if (index < 0 || index >= appState.celebrities.length) return;
+
+            appState.currentIndex = index;
+            const celebrity = appState.celebrities[index];
+            const ratingData = appState.ratings[index];
+
+            document.getElementById('celebrityImage').src = celebrity.image;
+            document.getElementById('celebrityImage').alt = celebrity.name;
+            document.getElementById('celebrityName').textContent = celebrity.name;
+
+            ratingData.name = celebrity.name;
+
+            renderRatingCategories(ratingData.ratings);
+            updateProgress();
+            updateNavigationButtons();
+        }
+
+        function renderRatingCategories(currentRatings) {
+            const container = document.getElementById('ratingCategories');
+            container.innerHTML = '';
+
+            ratingCategories.forEach((category) => {
+                const slug = slugifyCategory(category);
+                const rating = currentRatings[category] || 0;
+
+                const ratingItem = document.createElement('div');
+                ratingItem.className = 'rating-item';
+                ratingItem.innerHTML = `
+                    <div class="rating-label">
+                        <span>${category}</span>
+                        <span class="rating-value" id="ratingValue-${slug}">${rating}/5</span>
+                    </div>
+                    <div class="star-rating" id="stars-${slug}">
+                        ${generateStars(category, rating)}
+                    </div>
+                `;
+                container.appendChild(ratingItem);
+
+                ratingItem.querySelectorAll('.star').forEach((star) => {
+                    star.addEventListener('click', () => {
+                        const value = Number(star.dataset.value);
+                        setRating(category, value);
+                    });
+                });
+            });
+        }
+
+        function generateStars(category, rating) {
+            let starsHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                const isFilled = i <= rating;
+                starsHTML += `<button type="button" class="star ${isFilled ? 'filled' : ''}" data-category="${category}" data-value="${i}" aria-label="${category} rating ${i} of 5">${isFilled ? '★' : '☆'}</button>`;
+            }
+            return starsHTML;
+        }
+
+        function setRating(category, rating) {
+            const currentRatings = appState.ratings[appState.currentIndex].ratings;
+            currentRatings[category] = rating;
+
+            const slug = slugifyCategory(category);
+            document.getElementById(`ratingValue-${slug}`).textContent = `${rating}/5`;
+            renderRatingCategories(currentRatings);
+        }
+
+        function updateProgress() {
+            const total = appState.celebrities.length;
+            const current = appState.currentIndex + 1;
+            const percentage = (current / total) * 100;
+
+            document.getElementById('progressText').textContent = `${current} of ${total}`;
+            document.getElementById('progressFill').style.width = `${percentage}%`;
+        }
+
+        function updateNavigationButtons() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const submitBtn = document.getElementById('submitBtn');
+
+            const isFirst = appState.currentIndex === 0;
+            const isLast = appState.currentIndex === appState.celebrities.length - 1;
+
+            prevBtn.style.display = isFirst ? 'none' : 'inline-flex';
+            nextBtn.style.display = isLast ? 'none' : 'inline-flex';
+            submitBtn.style.display = isLast ? 'inline-flex' : 'none';
+        }
+
+        function nextCelebrity() {
+            if (appState.currentIndex < appState.celebrities.length - 1) {
+                loadCelebrity(appState.currentIndex + 1);
+            }
+        }
+
+        function previousCelebrity() {
+            if (appState.currentIndex > 0) {
+                loadCelebrity(appState.currentIndex - 1);
+            }
+        }
+
+        function submitRatings() {
+            const submitText = document.getElementById('submitText');
+            submitText.innerHTML = 'Generating Excel... <span class="loading"></span>';
+
+            let allRated = true;
+            appState.ratings.forEach((rating, index) => {
+                const hasZeroRating = Object.values(rating.ratings).some((value) => value === 0);
+                if (hasZeroRating) {
+                    allRated = false;
+                    if (index === appState.currentIndex) {
+                        alert(`Please rate all categories for ${rating.name}`);
+                    }
+                }
+            });
+
+            if (!allRated) {
+                submitText.textContent = 'Submit Ratings';
+                const unratedIndex = appState.ratings.findIndex((ratingEntry) =>
+                    Object.values(ratingEntry.ratings).some((value) => value === 0)
+                );
+                if (unratedIndex !== -1) {
+                    loadCelebrity(unratedIndex);
+                }
+                return;
+            }
+
+            generateExcelFile();
+        }
+
+        function generateExcelFile() {
+            try {
+                const excelData = [];
+                const headers = ['Rater Name', 'Celebrity Name', ...ratingCategories];
+                excelData.push(headers);
+
+                appState.ratings.forEach((ratingEntry) => {
+                    const row = [
+                        appState.raterName,
+                        ratingEntry.name,
+                        ratingEntry.ratings['Ass'],
+                        ratingEntry.ratings['Boobs'],
+                        ratingEntry.ratings['Armpits'],
+                        ratingEntry.ratings['face'],
+                        ratingEntry.ratings['Overall']
+                    ];
+                    excelData.push(row);
+                });
+
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(excelData);
+
+                ws['!cols'] = [
+                    { wch: 20 },
+                    { wch: 28 },
+                    { wch: 12 },
+                    { wch: 18 },
+                    { wch: 10 },
+                    { wch: 14 },
+                    { wch: 12 }
+                ];
+
+                XLSX.utils.book_append_sheet(wb, ws, 'Celebrity Ratings');
+
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+                const filename = `Celebrity_Ratings_${timestamp}.xlsx`;
+
+                XLSX.writeFile(wb, filename);
+
+                setTimeout(() => {
+                    document.getElementById('ratingScreen').classList.remove('active');
+                    document.getElementById('completionScreen').classList.add('active');
+                }, 450);
+            } catch (error) {
+                console.error('Error generating Excel file:', error);
+                alert('Error generating Excel file. Please try again.');
+                document.getElementById('submitText').textContent = 'Submit Ratings';
+            }
+        }
+
+        function resetApp() {
+            appState.raterName = '';
+            appState.currentIndex = 0;
+            appState.ratings = appState.celebrities.map(() => ({
+                name: '',
+                ratings: Object.fromEntries(
+                    ratingCategories.map((category) => [category, 0])
+                )
+            }));
+
+            document.getElementById('raterName').value = '';
+            document.getElementById('completionScreen').classList.remove('active');
+            document.getElementById('welcomeScreen').classList.add('active');
+        }
+
+        document.getElementById('raterName').addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                startRating();
+            }
+        });
+
+        document.getElementById('celebrityImage').onerror = function () {
+            this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNzc2IiBoZWlnaHQ9IjQ0MSIgdmlld0JveD0iMCAwIDc3NiA0NDEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9Ijc3NiIgaGVpZ2h0PSI0NDEiIGZpbGw9IiMxMjE4MkQiIHJ4PSIyOCI+PC9yZWN0PjxwYXRoIGQ9Ik0zODggNzZjODEuNzggMCAxNDguMTggNjYuNCAxNDguMTggMTQ4LjE4IDAgODEuNzktNjYuNCAxNDguMTgtMTQ4LjE4IDE0OC4xOC04MS43OSAwLTE0OC4xOC02Ni40LTE0OC4xOC0xNDguMTggMC04MS43OCA2Ni40LTE0OC4xOCAxNDguMTgtMTQ4LjE4Wm0wIDI0Mi45NmMxNi4yNyAwIDMyLjU0LTYuMjYgNDQuOTgtMTguNyAxMi40NC0xMi40NCAxOC43LTE4LjcyIDE4LjctNDQuOTggMC0yNi4yNy02LjI2LTMyLjU1LTE4LjctNDQuOTgtMTIuNDQtMTIuNDQtMjguNzEtMTguNy00NC45OC0xOC43LTI2LjI3IDAtMzIuNTUgNi4yNi00NC45OCAxOC43LTEyLjQ0IDEyLjQzLTE4LjcgMTguNy0xOC43IDQ0Ljk4IDAgMjYuMjYgNi4yNiAzMi41NCAxOC43IDQ0Ljk4IDEyLjQ0IDEyLjQ0IDI4LjcxIDE4LjcgNDQuOTggMTguN1oiIGZpbGw9IiM1NjYwN0YiIG9wYWNpdHk9Ii44NSI+PC9wYXRoPjwvc3ZnPg==';
+        };
+
+        initializeCelebrities();
+    </script>
+</body>
+</html>
